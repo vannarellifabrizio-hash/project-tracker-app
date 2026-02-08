@@ -81,6 +81,18 @@ export default function Collaboratore() {
     setProgettiFiltrati(progetti);
   };
 
+  const scrollToProgetto = (progettoId) => {
+    const element = document.getElementById(`progetto-${progettoId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Highlight temporaneo
+      element.style.boxShadow = '0 0 0 3px #2563eb';
+      setTimeout(() => {
+        element.style.boxShadow = '';
+      }, 2000);
+    }
+  };
+
   const handleTestoChange = (progettoId, valore) => {
     setNuovoTestoPerProgetto(prev => ({
       ...prev,
@@ -155,6 +167,7 @@ export default function Collaboratore() {
         </button>
       </div>
 
+      {/* SEZIONE RICERCA + LISTA PROGETTI */}
       <div className="card" style={{ background: '#f8fafc' }}>
         <h2 style={{ marginBottom: '16px' }}>🔍 Cerca Progetti</h2>
         
@@ -181,6 +194,86 @@ export default function Collaboratore() {
           )}
         </div>
         
+        {/* LISTA TUTTI I PROGETTI - GRIGLIA RESPONSIVA */}
+        {progetti.length > 0 && !ricercaApplicata && (
+          <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '2px solid #e5e7eb' }}>
+            <h3 style={{ 
+              fontSize: '15px', 
+              color: '#64748b', 
+              marginBottom: '16px',
+              fontWeight: '600'
+            }}>
+              📁 Tutti i progetti ({progetti.length})
+            </h3>
+            <div style={{ 
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+              gap: '12px'
+            }}>
+              {progetti.map(p => {
+                const numAttivita = attivitaPerProgetto[p.id]?.length || 0;
+                const hasAttivita = numAttivita > 0;
+                
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => scrollToProgetto(p.id)}
+                    style={{
+                      padding: '12px 16px',
+                      background: hasAttivita ? '#f0fdf4' : 'white',
+                      border: `2px solid ${hasAttivita ? '#22c55e' : '#e5e7eb'}`,
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      color: '#1e293b',
+                      transition: 'all 0.2s',
+                      textAlign: 'left',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <span style={{ 
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      display: 'block'
+                    }}>
+                      {p.titolo}
+                    </span>
+                    {numAttivita > 0 && (
+                      <span style={{ 
+                        fontSize: '12px', 
+                        color: '#22c55e',
+                        fontWeight: '600'
+                      }}>
+                        {numAttivita} attività
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ 
+              marginTop: '12px', 
+              fontSize: '13px', 
+              color: '#64748b',
+              fontStyle: 'italic'
+            }}>
+              💡 Clicca su un progetto per raggiungerlo velocemente
+            </div>
+          </div>
+        )}
+        
         {ricercaApplicata && (
           <div style={{ marginTop: '12px', color: '#64748b' }}>
             Risultati per: "<strong>{ricercaApplicata}</strong>" 
@@ -189,6 +282,7 @@ export default function Collaboratore() {
         )}
       </div>
 
+      {/* LISTA PROGETTI */}
       {progettiFiltrati.length === 0 ? (
         <div className="card">
           <p style={{ textAlign: 'center', color: '#64748b' }}>
@@ -204,7 +298,15 @@ export default function Collaboratore() {
           const attivitaDaMostrare = isEspanso ? attivita : attivita.slice(0, 10);
           
           return (
-            <div key={progetto.id} className="project-card">
+            <div 
+              key={progetto.id} 
+              id={`progetto-${progetto.id}`}
+              className="project-card"
+              style={{ 
+                transition: 'box-shadow 0.3s',
+                scrollMarginTop: '100px'
+              }}
+            >
               <div className="project-header">
                 <div>
                   <h2>{progetto.titolo}</h2>
