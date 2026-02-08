@@ -16,28 +16,24 @@ export default function Collaboratore() {
   const [progettiFiltrati, setProgettiFiltrati] = useState([]);
   const [attivitaPerProgetto, setAttivitaPerProgetto] = useState({});
   
-  // Ricerca progetti
   const [ricerca, setRicerca] = useState('');
   const [ricercaApplicata, setRicercaApplicata] = useState('');
-  
-  // Nuovo attività (per ogni progetto)
   const [nuovoTestoPerProgetto, setNuovoTestoPerProgetto] = useState({});
-  
-  // Modifica attività
   const [editingAttivita, setEditingAttivita] = useState(null);
-  
-  // Espansione attività
   const [progettiEspansi, setProgettiEspansi] = useState({});
 
   useEffect(() => {
-    // Recupera l'ID del collaboratore loggato
+    inizializza();
+  }, []);
+
+  const inizializza = async () => {
     const collabId = sessionStorage.getItem('collaboratoreId');
     if (!collabId) {
       router.push('/');
       return;
     }
     
-    const collaboratori = getCollaboratori();
+    const collaboratori = await getCollaboratori();
     const collab = collaboratori.find(c => c.id === collabId);
     if (!collab) {
       router.push('/');
@@ -45,28 +41,23 @@ export default function Collaboratore() {
     }
     
     setCollaboratoreCorrente(collab);
-    caricaDati(collabId);
-  }, []);
+    await caricaDati(collabId);
+  };
 
-  const caricaDati = useCallback((collabId) => {
-    const tuttiProgetti = getProgetti();
-    setProgetti(tuttiProgetti);
-    setProgettiFiltrati(tuttiProgetti);
+  const caricaDati = useCallback(async (collabId) => {
+    const tuttiProgetti = await getProgetti();
+    setProgetti(tuttiProgetti || []);
+    setProgettiFiltrati(tuttiProgetti || []);
     
-    // Carica attività per ogni progetto
     const attivitaMap = {};
-    tuttiProgetti.forEach(progetto => {
-      const attivita = getAttivitaByCollaboratore(collabId, progetto.id);
-      // Ordina dalla più recente alla più vecchia
-      attivita.sort((a, b) => new Date(b.dataInserimento) - new Date(a.dataInserimento));
+    for (const progetto of tuttiProgetti) {
+      const attivita = await getAttivitaByCollaboratore(collabId, progetto.id);
+      attivita.sort((a, b) => new Date(b.data_inserimento) - new Date(a.data_inserimento));
       attivitaMap[progetto.id] = attivita;
-    });
+    }
     setAttivitaPerProgetto(attivitaMap);
   }, []);
 
-  // ===================================
-  // RICERCA PROGETTI
-  // ===================================
   const applicaRicerca = () => {
     if (!ricerca.trim()) {
       setProgettiFiltrati(progetti);
@@ -90,11 +81,6 @@ export default function Collaboratore() {
     setProgettiFiltrati(progetti);
   };
 
-  // ===================================
-  // GESTIONE ATTIVITÀ
-  // ===================================
-  
-  // IMPORTANTE: Uso una funzione separata per ogni progetto per evitare re-render
   const handleTestoChange = (progettoId, valore) => {
     setNuovoTestoPerProgetto(prev => ({
       ...prev,
@@ -102,7 +88,7 @@ export default function Collaboratore() {
     }));
   };
 
-  const aggiungiAttivita = (progettoId) => {
+  const aggiungiAttivita = async (progettoId) => {
     const testo = nuovoTestoPerProgetto[progettoId];
     
     if (!testo || !testo.trim()) {
@@ -110,15 +96,14 @@ export default function Collaboratore() {
       return;
     }
     
-    saveAttivita(progettoId, collaboratoreCorrente.id, testo.trim());
+    await saveAttivita(progettoId, collaboratoreCorrente.id, testo.trim());
     
-    // Resetta solo il campo di questo progetto
     setNuovoTestoPerProgetto(prev => ({
       ...prev,
       [progettoId]: ''
     }));
     
-    caricaDati(collaboratoreCorrente.id);
+    await caricaDati(collaboratoreCorrente.id);
   };
 
   const iniziaModificaAttivita = (attivita) => {
@@ -128,21 +113,21 @@ export default function Collaboratore() {
     });
   };
 
-  const salvaModificaAttivita = () => {
+  const salvaModificaAttivita = async () => {
     if (!editingAttivita.testo.trim()) {
       alert('Il testo non può essere vuoto');
       return;
     }
     
-    updateAttivita(editingAttivita.id, editingAttivita.testo.trim());
+    await updateAttivita(editingAttivita.id, editingAttivita.testo.trim());
     setEditingAttivita(null);
-    caricaDati(collaboratoreCorrente.id);
+    await caricaDati(collaboratoreCorrente.id);
   };
 
-  const eliminaAttivitaConferma = (id) => {
+  const eliminaAttivitaConferma = async (id) => {
     if (confirm('Sei sicuro di voler eliminare questa attività?')) {
-      deleteAttivita(id);
-      caricaDati(collaboratoreCorrente.id);
+      await deleteAttivita(id);
+      await caricaDati(collaboratoreCorrente.id);
     }
   };
 
@@ -170,7 +155,6 @@ export default function Collaboratore() {
         </button>
       </div>
 
-      {/* RICERCA PROGETTI */}
       <div className="card" style={{ background: '#f8fafc' }}>
         <h2 style={{ marginBottom: '16px' }}>🔍 Cerca Progetti</h2>
         
@@ -205,7 +189,6 @@ export default function Collaboratore() {
         )}
       </div>
 
-      {/* LISTA PROGETTI */}
       {progettiFiltrati.length === 0 ? (
         <div className="card">
           <p style={{ textAlign: 'center', color: '#64748b' }}>
@@ -222,7 +205,6 @@ export default function Collaboratore() {
           
           return (
             <div key={progetto.id} className="project-card">
-              {/* HEADER PROGETTO */}
               <div className="project-header">
                 <div>
                   <h2>{progetto.titolo}</h2>
@@ -233,16 +215,15 @@ export default function Collaboratore() {
                   )}
                 </div>
                 <div style={{ textAlign: 'right', fontSize: '14px', color: '#64748b' }}>
-                  {progetto.dataInizio && (
-                    <div>Inizio: {new Date(progetto.dataInizio).toLocaleDateString('it-IT')}</div>
+                  {progetto.data_inizio && (
+                    <div>Inizio: {new Date(progetto.data_inizio).toLocaleDateString('it-IT')}</div>
                   )}
-                  {progetto.dataFine && (
-                    <div>Fine: {new Date(progetto.dataFine).toLocaleDateString('it-IT')}</div>
+                  {progetto.data_fine && (
+                    <div>Fine: {new Date(progetto.data_fine).toLocaleDateString('it-IT')}</div>
                   )}
                 </div>
               </div>
 
-              {/* AGGIUNGI NUOVA ATTIVITÀ */}
               <div style={{ 
                 background: '#f0fdf4', 
                 padding: '16px', 
@@ -270,7 +251,6 @@ export default function Collaboratore() {
                 </div>
               </div>
 
-              {/* LISTA ATTIVITÀ */}
               <h3 style={{ marginBottom: '12px', fontSize: '16px' }}>
                 📋 Le Tue Attività ({attivita.length})
               </h3>
@@ -298,7 +278,7 @@ export default function Collaboratore() {
                             • {collaboratoreCorrente.nome}
                           </span>
                           <span style={{ color: '#64748b', marginLeft: '12px', fontSize: '14px' }}>
-                            {new Date(att.dataInserimento).toLocaleDateString('it-IT')}
+                            {new Date(att.data_inserimento).toLocaleDateString('it-IT')}
                           </span>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
@@ -322,7 +302,6 @@ export default function Collaboratore() {
                     </div>
                   ))}
                   
-                  {/* PULSANTE ESPANDI/COMPRIMI */}
                   {attivita.length > 10 && (
                     <button
                       className="btn btn-secondary"
@@ -341,7 +320,6 @@ export default function Collaboratore() {
         })
       )}
 
-      {/* MODAL MODIFICA ATTIVITÀ */}
       {editingAttivita && (
         <div className="modal-overlay" onClick={() => setEditingAttivita(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
