@@ -4,7 +4,7 @@ import { verificaAdmin, verificaDashboard, verificaCollaboratore, initializeStor
 
 export default function Home() {
   const router = useRouter();
-  const [modalAperto, setModalAperto] = useState(null); // 'admin', 'collaboratore', 'dashboard'
+  const [modalAperto, setModalAperto] = useState(null);
   const [password, setPassword] = useState('');
   const [nomeCollaboratore, setNomeCollaboratore] = useState('');
   const [collaboratori, setCollaboratori] = useState([]);
@@ -12,8 +12,13 @@ export default function Home() {
 
   useEffect(() => {
     initializeStorage();
-    setCollaboratori(getCollaboratori());
+    caricaCollaboratori();
   }, []);
+
+  const caricaCollaboratori = async () => {
+    const collab = await getCollaboratori();
+    setCollaboratori(collab || []);
+  };
 
   const handleAccessoAdmin = () => {
     if (verificaAdmin(password)) {
@@ -31,15 +36,14 @@ export default function Home() {
     }
   };
 
-  const handleAccessoCollaboratore = () => {
+  const handleAccessoCollaboratore = async () => {
     if (!nomeCollaboratore) {
       setErrore('Seleziona un collaboratore');
       return;
     }
     
-    const collab = verificaCollaboratore(nomeCollaboratore, password);
+    const collab = await verificaCollaboratore(nomeCollaboratore, password);
     if (collab) {
-      // Salva l'ID del collaboratore in sessionStorage per le altre pagine
       sessionStorage.setItem('collaboratoreId', collab.id);
       router.push('/collaboratore');
     } else {
@@ -113,7 +117,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* MODAL LOGIN */}
       {modalAperto && (
         <div className="modal-overlay" onClick={chiudiModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -123,7 +126,6 @@ export default function Home() {
               {modalAperto === 'dashboard' && '📊 Login Dashboard'}
             </h2>
 
-            {/* SELEZIONE COLLABORATORE */}
             {modalAperto === 'collaboratore' && (
               <div className="input-group">
                 <label>Seleziona il tuo nome</label>
@@ -139,7 +141,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* PASSWORD */}
             <div className="input-group">
               <label>Password</label>
               <input
