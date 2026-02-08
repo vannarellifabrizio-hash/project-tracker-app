@@ -30,31 +30,33 @@ export default function Admin() {
   const [nuovaDataFine, setNuovaDataFine] = useState('');
   const [editingProgetto, setEditingProgetto] = useState(null);
   
-  const [tabAttiva, setTabAttiva] = useState('collaboratori'); // 'collaboratori' o 'progetti'
+  const [tabAttiva, setTabAttiva] = useState('collaboratori');
 
   useEffect(() => {
     caricaDati();
   }, []);
 
-  const caricaDati = useCallback(() => {
-    setCollaboratori(getCollaboratori());
-    setProgetti(getProgetti());
+  const caricaDati = useCallback(async () => {
+    const collab = await getCollaboratori();
+    const prog = await getProgetti();
+    setCollaboratori(collab || []);
+    setProgetti(prog || []);
   }, []);
 
   // ===================================
   // GESTIONE COLLABORATORI
   // ===================================
-  const aggiungiCollaboratore = () => {
+  const aggiungiCollaboratore = async () => {
     if (!nuovoNome.trim() || !nuovaPassword.trim()) {
       alert('Nome e password sono obbligatori');
       return;
     }
     
-    saveCollaboratore(nuovoNome.trim(), nuovaPassword, nuovoColore);
+    await saveCollaboratore(nuovoNome.trim(), nuovaPassword, nuovoColore);
     setNuovoNome('');
     setNuovaPassword('');
     setNuovoColore('#3b82f6');
-    caricaDati();
+    await caricaDati();
   };
 
   const iniziaModificaCollaboratore = (collab) => {
@@ -62,11 +64,11 @@ export default function Admin() {
       id: collab.id,
       nome: collab.nome,
       colore: collab.colore,
-      password: '' // Non mostriamo mai la password
+      password: ''
     });
   };
 
-  const salvaModificaCollaboratore = () => {
+  const salvaModificaCollaboratore = async () => {
     if (!editingCollab.nome.trim()) {
       alert('Il nome è obbligatorio');
       return;
@@ -77,33 +79,32 @@ export default function Admin() {
       colore: editingCollab.colore
     };
     
-    // Solo se è stata inserita una nuova password
     if (editingCollab.password.trim()) {
       updates.password = editingCollab.password;
     }
     
-    updateCollaboratore(editingCollab.id, updates);
+    await updateCollaboratore(editingCollab.id, updates);
     setEditingCollab(null);
-    caricaDati();
+    await caricaDati();
   };
 
-  const eliminaCollaboratoreConferma = (id, nome) => {
+  const eliminaCollaboratoreConferma = async (id, nome) => {
     if (confirm(`Sei sicuro di voler eliminare ${nome}? Verranno eliminate anche tutte le sue attività.`)) {
-      deleteCollaboratore(id);
-      caricaDati();
+      await deleteCollaboratore(id);
+      await caricaDati();
     }
   };
 
   // ===================================
   // GESTIONE PROGETTI
   // ===================================
-  const aggiungiProgetto = () => {
+  const aggiungiProgetto = async () => {
     if (!nuovoTitolo.trim()) {
       alert('Il titolo è obbligatorio');
       return;
     }
     
-    saveProgetto(
+    await saveProgetto(
       nuovoTitolo.trim(),
       nuovoSottotitolo.trim(),
       nuovaDataInizio,
@@ -114,40 +115,40 @@ export default function Admin() {
     setNuovoSottotitolo('');
     setNuovaDataInizio('');
     setNuovaDataFine('');
-    caricaDati();
+    await caricaDati();
   };
 
   const iniziaModificaProgetto = (progetto) => {
     setEditingProgetto({ ...progetto });
   };
 
-  const salvaModificaProgetto = () => {
+  const salvaModificaProgetto = async () => {
     if (!editingProgetto.titolo.trim()) {
       alert('Il titolo è obbligatorio');
       return;
     }
     
-    updateProgetto(editingProgetto.id, {
+    await updateProgetto(editingProgetto.id, {
       titolo: editingProgetto.titolo.trim(),
       sottotitolo: editingProgetto.sottotitolo.trim(),
-      dataInizio: editingProgetto.dataInizio,
-      dataFine: editingProgetto.dataFine
+      dataInizio: editingProgetto.data_inizio,
+      dataFine: editingProgetto.data_fine
     });
     
     setEditingProgetto(null);
-    caricaDati();
+    await caricaDati();
   };
 
-  const eliminaProgettoConferma = (id, titolo) => {
+  const eliminaProgettoConferma = async (id, titolo) => {
     if (confirm(`Sei sicuro di voler eliminare "${titolo}"? Verranno eliminate anche tutte le attività associate.`)) {
-      deleteProgetto(id);
-      caricaDati();
+      await deleteProgetto(id);
+      await caricaDati();
     }
   };
 
-  const ordinaProgettiPerNome = () => {
-    const progettiOrdinati = ordinaProgetti();
-    setProgetti([...progettiOrdinati]);
+  const ordinaProgettiPerNome = async () => {
+    const progettiOrdinati = await ordinaProgetti();
+    setProgetti(progettiOrdinati || []);
   };
 
   return (
@@ -159,7 +160,6 @@ export default function Admin() {
         </button>
       </div>
 
-      {/* TAB NAVIGATION */}
       <div style={{ 
         display: 'flex', 
         gap: '12px', 
@@ -189,9 +189,6 @@ export default function Admin() {
         </button>
       </div>
 
-      {/* ================================= */}
-      {/* TAB COLLABORATORI */}
-      {/* ================================= */}
       {tabAttiva === 'collaboratori' && (
         <>
           <div className="card">
@@ -289,9 +286,6 @@ export default function Admin() {
         </>
       )}
 
-      {/* ================================= */}
-      {/* TAB PROGETTI */}
-      {/* ================================= */}
       {tabAttiva === 'progetti' && (
         <>
           <div className="card">
@@ -409,11 +403,11 @@ export default function Admin() {
                       fontSize: '14px',
                       color: '#64748b'
                     }}>
-                      {progetto.dataInizio && (
-                        <span>📅 Inizio: {new Date(progetto.dataInizio).toLocaleDateString('it-IT')}</span>
+                      {progetto.data_inizio && (
+                        <span>📅 Inizio: {new Date(progetto.data_inizio).toLocaleDateString('it-IT')}</span>
                       )}
-                      {progetto.dataFine && (
-                        <span>🏁 Fine: {new Date(progetto.dataFine).toLocaleDateString('it-IT')}</span>
+                      {progetto.data_fine && (
+                        <span>🏁 Fine: {new Date(progetto.data_fine).toLocaleDateString('it-IT')}</span>
                       )}
                     </div>
                   </div>
@@ -424,9 +418,6 @@ export default function Admin() {
         </>
       )}
 
-      {/* ================================= */}
-      {/* MODAL MODIFICA COLLABORATORE */}
-      {/* ================================= */}
       {editingCollab && (
         <div className="modal-overlay" onClick={() => setEditingCollab(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -473,9 +464,6 @@ export default function Admin() {
         </div>
       )}
 
-      {/* ================================= */}
-      {/* MODAL MODIFICA PROGETTO */}
-      {/* ================================= */}
       {editingProgetto && (
         <div className="modal-overlay" onClick={() => setEditingProgetto(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -503,8 +491,8 @@ export default function Admin() {
               <label>Data Inizio</label>
               <input
                 type="date"
-                value={editingProgetto.dataInizio}
-                onChange={(e) => setEditingProgetto({ ...editingProgetto, dataInizio: e.target.value })}
+                value={editingProgetto.data_inizio}
+                onChange={(e) => setEditingProgetto({ ...editingProgetto, data_inizio: e.target.value })}
               />
             </div>
 
@@ -512,8 +500,8 @@ export default function Admin() {
               <label>Data Fine</label>
               <input
                 type="date"
-                value={editingProgetto.dataFine}
-                onChange={(e) => setEditingProgetto({ ...editingProgetto, dataFine: e.target.value })}
+                value={editingProgetto.data_fine}
+                onChange={(e) => setEditingProgetto({ ...editingProgetto, data_fine: e.target.value })}
               />
             </div>
 
