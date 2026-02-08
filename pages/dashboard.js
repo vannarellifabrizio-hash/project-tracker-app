@@ -17,33 +17,39 @@ export default function Dashboard() {
   const [progetti, setProgetti] = useState([]);
   const [attivita, setAttivita] = useState([]);
   const [attivitaFiltrate, setAttivitaFiltrate] = useState([]);
+  const [statusCollaboratori, setStatusCollaboratori] = useState({});
   
-  // Filtri
   const [filtroDataInizio, setFiltroDataInizio] = useState('');
   const [filtroDataFine, setFiltroDataFine] = useState('');
   const [filtroProgetto, setFiltroProgetto] = useState('');
   const [filtroCollaboratore, setFiltroCollaboratore] = useState('');
   const [filtriApplicati, setFiltriApplicati] = useState(false);
   
-  // Espansione
   const [progettiEspansi, setProgettiEspansi] = useState({});
 
   useEffect(() => {
     caricaDati();
   }, []);
 
-  const caricaDati = useCallback(() => {
-    setCollaboratori(getCollaboratori());
-    setProgetti(getProgetti());
-    const tutteAttivita = getAttivita();
-    setAttivita(tutteAttivita);
-    setAttivitaFiltrate(tutteAttivita);
+  const caricaDati = useCallback(async () => {
+    const collab = await getCollaboratori();
+    const prog = await getProgetti();
+    const tutteAttivita = await getAttivita();
+    
+    setCollaboratori(collab || []);
+    setProgetti(prog || []);
+    setAttivita(tutteAttivita || []);
+    setAttivitaFiltrate(tutteAttivita || []);
+    
+    const statusMap = {};
+    for (const c of (collab || [])) {
+      const status = await getStatusCollaboratore(c.id);
+      statusMap[c.id] = status;
+    }
+    setStatusCollaboratori(statusMap);
   }, []);
 
-  // ===================================
-  // FILTRI
-  // ===================================
-  const applicaFiltri = () => {
+  const applicaFiltri = async () => {
     const filtri = {
       dataInizio: filtroDataInizio,
       dataFine: filtroDataFine,
@@ -51,8 +57,8 @@ export default function Dashboard() {
       collaboratoreId: filtroCollaboratore
     };
     
-    const risultato = filtraAttivita(filtri);
-    setAttivitaFiltrate(risultato);
+    const risultato = await filtraAttivita(filtri);
+    setAttivitaFiltrate(risultato || []);
     setFiltriApplicati(true);
   };
 
@@ -74,9 +80,6 @@ export default function Dashboard() {
     setFiltroDataFine(oggi.toISOString().split('T')[0]);
   };
 
-  // ===================================
-  // EXPORT PDF
-  // ===================================
   const esportaPDFTabellare = () => {
     generaPDFTabellare(attivitaFiltrate, progetti, collaboratori);
   };
@@ -85,9 +88,6 @@ export default function Dashboard() {
     generaPDFEditoriale(attivitaFiltrate, progetti, collaboratori);
   };
 
-  // ===================================
-  // UTILITY
-  // ===================================
   const toggleEspansione = (progettoId) => {
     setProgettiEspansi(prev => ({
       ...prev,
@@ -96,19 +96,23 @@ export default function Dashboard() {
   };
 
   const getAttivitaPerProgetto = (progettoId) => {
-    return attivitaFiltrate.filter(a => a.progettoId === progettoId)
-      .sort((a, b) => new Date(b.dataInserimento) - new Date(a.dataInserimento));
+    return attivitaFiltrate.filter(a => a.progetto_id === progettoId)
+      .sort((a, b) => new Date(b.data_inserimento) - new Date(a.data_inserimento));
   };
 
   const getCollaboratoriPerProgetto = (progettoId) => {
-    const attivitaProgetto = attivitaFiltrate.filter(a => a.progettoId === progettoId);
-    const collabIds = [...new Set(attivitaProgetto.map(a => a.collaboratoreId))];
+    const attivitaProgetto = attivitaFiltrate.filter(a => a.progetto_id === progettoId);
+    const collabIds = [...new Set(attivitaProgetto.map(a => a.collaboratore_id))];
     return collaboratori.filter(c => collabIds.includes(c.id));
   };
 
   const isProgettoTerminato = (progetto) => {
-    if (!progetto.dataFine) return false;
-    return new Date(progetto.dataFine) < new Date();
+    if (!progetto.data_fine) return false;
+    return new Date(progetto.data_fine) < new Date();
+  };
+
+  const getUltimaAttivitaSync = async (collabId) => {
+    return await getUltimaAttivitaCollaboratore(collabId);
   };
 
   return (
@@ -120,7 +124,6 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* STATUS COLLABORATORI */}
       <div className="card" style={{ background: '#f8fafc' }}>
         <h2 style={{ marginBottom: '16px' }}>👥 Status Collaboratori</h2>
         
@@ -129,8 +132,7 @@ export default function Dashboard() {
         ) : (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
             {collaboratori.map(collab => {
-              const ultimaAttivita = getUltimaAttivitaCollaboratore(collab.id);
-              const status = getStatusCollaboratore(collab.id);
+              const status = statusCollaboratori[collab.id] || 'red';
               
               return (
                 <div
@@ -145,17 +147,10 @@ export default function Dashboard() {
                     gap: '12px'
                   }}
                 >
-                  <span
-                    className={`status-indicator status-${status}`}
-                  />
+                  <span className={`status-indicator status-${status}`} />
                   <div>
                     <div style={{ fontWeight: '500', color: collab.colore }}>
                       {collab.nome}
-                    </div>
-                    <div style={{ fontSize: '13px', color: '#64748b' }}>
-                      {ultimaAttivita 
-                        ? `Ultima attività: ${new Date(ultimaAttivita.dataInserimento).toLocaleDateString('it-IT')}`
-                        : 'Nessuna attività'}
                     </div>
                   </div>
                 </div>
@@ -165,12 +160,10 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* FILTRI */}
       <div className="filter-section">
         <h2 style={{ marginBottom: '16px' }}>🔍 Filtri di Ricerca</h2>
         
         <div className="filter-row">
-          {/* Data Inizio */}
           <div className="input-group" style={{ flex: 1, minWidth: '200px', marginBottom: 0 }}>
             <label>Data Inizio</label>
             <input
@@ -180,7 +173,6 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* Data Fine */}
           <div className="input-group" style={{ flex: 1, minWidth: '200px', marginBottom: 0 }}>
             <label>Data Fine</label>
             <input
@@ -190,7 +182,6 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* Quick Filter: Ultimi 7 giorni */}
           <button
             className="btn btn-secondary"
             onClick={setUltimi7Giorni}
@@ -201,7 +192,6 @@ export default function Dashboard() {
         </div>
 
         <div className="filter-row" style={{ marginTop: '12px' }}>
-          {/* Progetto */}
           <div className="input-group" style={{ flex: 1, minWidth: '200px', marginBottom: 0 }}>
             <label>Progetto</label>
             <select
@@ -215,7 +205,6 @@ export default function Dashboard() {
             </select>
           </div>
 
-          {/* Collaboratore */}
           <div className="input-group" style={{ flex: 1, minWidth: '200px', marginBottom: 0 }}>
             <label>Collaboratore</label>
             <select
@@ -230,7 +219,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Pulsanti Azione */}
         <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
           <button className="btn btn-primary" onClick={applicaFiltri}>
             🔍 Filtra Risultati
@@ -255,7 +243,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* EXPORT PDF */}
       <div className="card" style={{ background: '#fef3c7' }}>
         <h2 style={{ marginBottom: '16px' }}>📄 Esporta in PDF</h2>
         <p style={{ marginBottom: '16px', color: '#92400e' }}>
@@ -274,7 +261,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* PROGETTI */}
       <h2 style={{ marginTop: '30px', marginBottom: '20px' }}>📁 Progetti e Attività</h2>
       
       {progetti.length === 0 ? (
@@ -293,7 +279,6 @@ export default function Dashboard() {
           
           return (
             <div key={progetto.id} className="project-card">
-              {/* HEADER */}
               <div className="project-header">
                 <div>
                   <h2>{progetto.titolo}</h2>
@@ -303,7 +288,6 @@ export default function Dashboard() {
                     </p>
                   )}
                   
-                  {/* RISORSE INTERESSATE */}
                   {collaboratoriProgetto.length > 0 && (
                     <div style={{ marginTop: '12px' }}>
                       <strong>Risorse interessate: </strong>
@@ -320,17 +304,15 @@ export default function Dashboard() {
                 </div>
                 
                 <div style={{ textAlign: 'right' }}>
-                  {/* DATE */}
                   <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '12px' }}>
-                    {progetto.dataInizio && (
-                      <div>Inizio: {new Date(progetto.dataInizio).toLocaleDateString('it-IT')}</div>
+                    {progetto.data_inizio && (
+                      <div>Inizio: {new Date(progetto.data_inizio).toLocaleDateString('it-IT')}</div>
                     )}
-                    {progetto.dataFine && (
-                      <div>Fine: {new Date(progetto.dataFine).toLocaleDateString('it-IT')}</div>
+                    {progetto.data_fine && (
+                      <div>Fine: {new Date(progetto.data_fine).toLocaleDateString('it-IT')}</div>
                     )}
                   </div>
                   
-                  {/* STATUS */}
                   <div style={{ 
                     display: 'flex', 
                     alignItems: 'center', 
@@ -339,15 +321,12 @@ export default function Dashboard() {
                     fontSize: '14px',
                     fontWeight: '500'
                   }}>
-                    <span
-                      className={`status-indicator ${isTerminato ? 'status-red' : 'status-green'}`}
-                    />
+                    <span className={`status-indicator ${isTerminato ? 'status-red' : 'status-green'}`} />
                     {isTerminato ? 'Terminato' : 'In Corso'}
                   </div>
                 </div>
               </div>
 
-              {/* ATTIVITÀ */}
               <h3 style={{ marginTop: '20px', marginBottom: '12px', fontSize: '16px' }}>
                 📋 Attività ({attivitaProgetto.length})
               </h3>
@@ -359,7 +338,7 @@ export default function Dashboard() {
               ) : (
                 <>
                   {attivitaDaMostrare.map(att => {
-                    const collaboratore = collaboratori.find(c => c.id === att.collaboratoreId);
+                    const collaboratore = collaboratori.find(c => c.id === att.collaboratore_id);
                     return (
                       <div key={att.id} className="activity-item">
                         <div>
@@ -372,7 +351,7 @@ export default function Dashboard() {
                             • {collaboratore?.nome || 'Sconosciuto'}
                           </span>
                           <span style={{ color: '#64748b', marginLeft: '12px', fontSize: '14px' }}>
-                            {new Date(att.dataInserimento).toLocaleDateString('it-IT')}
+                            {new Date(att.data_inserimento).toLocaleDateString('it-IT')}
                           </span>
                         </div>
                         <p style={{ color: '#1e293b', marginTop: '4px' }}>{att.testo}</p>
