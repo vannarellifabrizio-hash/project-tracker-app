@@ -16,15 +16,15 @@ export const generaPDFTabellare = (attivita, progetti, collaboratori) => {
   
   // Prepara i dati raggruppati per progetto
   const datiPerProgetto = progetti.map(progetto => {
-    const attivitaProgetto = attivita.filter(a => a.progettoId === progetto.id);
+    const attivitaProgetto = attivita.filter(a => a.progetto_id === progetto.id);
     
     // Raggruppa per collaboratore
     const attivitaPerCollaboratore = {};
     attivitaProgetto.forEach(att => {
-      if (!attivitaPerCollaboratore[att.collaboratoreId]) {
-        attivitaPerCollaboratore[att.collaboratoreId] = [];
+      if (!attivitaPerCollaboratore[att.collaboratore_id]) {
+        attivitaPerCollaboratore[att.collaboratore_id] = [];
       }
-      attivitaPerCollaboratore[att.collaboratoreId].push(att);
+      attivitaPerCollaboratore[att.collaboratore_id].push(att);
     });
     
     return {
@@ -120,7 +120,7 @@ export const generaPDFEditoriale = (attivita, progetti, collaboratori) => {
   
   // Per ogni progetto
   progetti.forEach(progetto => {
-    const attivitaProgetto = attivita.filter(a => a.progettoId === progetto.id);
+    const attivitaProgetto = attivita.filter(a => a.progetto_id === progetto.id);
     
     if (attivitaProgetto.length === 0) return;
     
@@ -147,11 +147,11 @@ export const generaPDFEditoriale = (attivita, progetti, collaboratori) => {
     doc.setFontSize(9);
     doc.setFont(undefined, 'normal');
     let dateText = '';
-    if (progetto.dataInizio) {
-      dateText += `Inizio: ${new Date(progetto.dataInizio).toLocaleDateString('it-IT')}`;
+    if (progetto.data_inizio) {
+      dateText += `Inizio: ${new Date(progetto.data_inizio).toLocaleDateString('it-IT')}`;
     }
-    if (progetto.dataFine) {
-      dateText += ` | Fine: ${new Date(progetto.dataFine).toLocaleDateString('it-IT')}`;
+    if (progetto.data_fine) {
+      dateText += ` | Fine: ${new Date(progetto.data_fine).toLocaleDateString('it-IT')}`;
     }
     if (dateText) {
       doc.text(dateText, 14, currentY);
@@ -163,10 +163,10 @@ export const generaPDFEditoriale = (attivita, progetti, collaboratori) => {
     // Raggruppa attività per collaboratore
     const attivitaPerCollaboratore = {};
     attivitaProgetto.forEach(att => {
-      if (!attivitaPerCollaboratore[att.collaboratoreId]) {
-        attivitaPerCollaboratore[att.collaboratoreId] = [];
+      if (!attivitaPerCollaboratore[att.collaboratore_id]) {
+        attivitaPerCollaboratore[att.collaboratore_id] = [];
       }
-      attivitaPerCollaboratore[att.collaboratoreId].push(att);
+      attivitaPerCollaboratore[att.collaboratore_id].push(att);
     });
     
     // Per ogni collaboratore
@@ -175,7 +175,7 @@ export const generaPDFEditoriale = (attivita, progetti, collaboratori) => {
       const attivitaCollab = attivitaPerCollaboratore[collabId];
       
       // Ordina per data
-      attivitaCollab.sort((a, b) => new Date(b.dataInserimento) - new Date(a.dataInserimento));
+      attivitaCollab.sort((a, b) => new Date(b.data_inserimento) - new Date(a.data_inserimento));
       
       // Nome collaboratore
       doc.setFontSize(11);
@@ -195,7 +195,7 @@ export const generaPDFEditoriale = (attivita, progetti, collaboratori) => {
         }
         
         // Data + Testo
-        const dataStr = new Date(att.dataInserimento).toLocaleDateString('it-IT');
+        const dataStr = new Date(att.data_inserimento).toLocaleDateString('it-IT');
         const testoCompleto = `• [${dataStr}] ${att.testo}`;
         
         // Split testo lungo su più righe
