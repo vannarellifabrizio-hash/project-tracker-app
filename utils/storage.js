@@ -203,13 +203,30 @@ export const saveAttivita = async (progettoId, collaboratoreId, testo) => {
   return data;
 };
 
-export const updateAttivita = async (id, testo) => {
+// ===================================
+// MODIFICA ATTIVITÀ - AGGIORNATA PER GESTIRE LA DATA
+// ===================================
+export const updateAttivita = async (id, updates) => {
+  // Se updates è una stringa, è solo il testo (retrocompatibilità)
+  // Se è un oggetto, può contenere testo e/o data
+  const updateData = typeof updates === 'string' 
+    ? { testo: updates }
+    : {
+        testo: updates.testo,
+        ...(updates.dataInserimento && { data_inserimento: updates.dataInserimento })
+      };
+
   const { data, error } = await supabase
     .from('attivita')
-    .update({ testo })
+    .update(updateData)
     .eq('id', id)
     .select()
     .single();
+  
+  if (error) {
+    console.error('Errore aggiornamento attività:', error);
+    return null;
+  }
   
   return data;
 };
