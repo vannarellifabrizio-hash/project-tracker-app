@@ -85,7 +85,6 @@ export default function Collaboratore() {
     const element = document.getElementById(`progetto-${progettoId}`);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      // Highlight temporaneo
       element.style.boxShadow = '0 0 0 3px #2563eb';
       setTimeout(() => {
         element.style.boxShadow = '';
@@ -121,7 +120,8 @@ export default function Collaboratore() {
   const iniziaModificaAttivita = (attivita) => {
     setEditingAttivita({
       id: attivita.id,
-      testo: attivita.testo
+      testo: attivita.testo,
+      data: new Date(attivita.data_inserimento).toISOString().split('T')[0]
     });
   };
 
@@ -131,7 +131,10 @@ export default function Collaboratore() {
       return;
     }
     
-    await updateAttivita(editingAttivita.id, editingAttivita.testo.trim());
+    await updateAttivita(editingAttivita.id, {
+      testo: editingAttivita.testo.trim(),
+      dataInserimento: editingAttivita.data
+    });
     setEditingAttivita(null);
     await caricaDati(collaboratoreCorrente.id);
   };
@@ -167,7 +170,6 @@ export default function Collaboratore() {
         </button>
       </div>
 
-      {/* SEZIONE RICERCA + LISTA PROGETTI */}
       <div className="card" style={{ background: '#f8fafc' }}>
         <h2 style={{ marginBottom: '16px' }}>🔍 Cerca Progetti</h2>
         
@@ -194,7 +196,6 @@ export default function Collaboratore() {
           )}
         </div>
         
-        {/* LISTA TUTTI I PROGETTI - GRIGLIA RESPONSIVA */}
         {progetti.length > 0 && !ricercaApplicata && (
           <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '2px solid #e5e7eb' }}>
             <h3 style={{ 
@@ -282,7 +283,6 @@ export default function Collaboratore() {
         )}
       </div>
 
-      {/* LISTA PROGETTI */}
       {progettiFiltrati.length === 0 ? (
         <div className="card">
           <p style={{ textAlign: 'center', color: '#64748b' }}>
@@ -428,7 +428,16 @@ export default function Collaboratore() {
             <h2 style={{ marginBottom: '20px' }}>✏️ Modifica Attività</h2>
             
             <div className="input-group">
-              <label>Testo Attività</label>
+              <label>📅 Data Attività</label>
+              <input
+                type="date"
+                value={editingAttivita.data}
+                onChange={(e) => setEditingAttivita({ ...editingAttivita, data: e.target.value })}
+              />
+            </div>
+
+            <div className="input-group">
+              <label>📝 Testo Attività</label>
               <textarea
                 value={editingAttivita.testo}
                 onChange={(e) => setEditingAttivita({ ...editingAttivita, testo: e.target.value })}
