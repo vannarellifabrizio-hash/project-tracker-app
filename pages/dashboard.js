@@ -29,7 +29,6 @@ export default function Dashboard() {
   
   const [progettiEspansi, setProgettiEspansi] = useState({});
 
-  // Palette di colori per i progetti
   const coloriProgetti = [
     'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
@@ -144,21 +143,6 @@ export default function Dashboard() {
     return new Date(progetto.data_fine) < new Date();
   };
 
-  const formatDataRelativa = (dataStr) => {
-    if (!dataStr) return 'Mai';
-    const data = new Date(dataStr);
-    const oggi = new Date();
-    const diffTime = Math.abs(oggi - data);
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return 'Oggi';
-    if (diffDays === 1) return 'Ieri';
-    if (diffDays < 7) return `${diffDays} giorni fa`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} settimane fa`;
-    return `${Math.floor(diffDays / 30)} mesi fa`;
-  };
-
-  // Filtra i progetti da mostrare
   const progettiFiltrati = filtroProgetto 
     ? progetti.filter(p => p.id === filtroProgetto)
     : progetti;
@@ -179,13 +163,13 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* STATUS COLLABORATORI - CLICKABLE */}
+      {/* STATUS COLLABORATORI - COMPATTI */}
       <div className="card" style={{ background: '#ffffff', border: '2px solid #e5e7eb' }}>
-        <div style={{ marginBottom: '20px' }}>
-          <h2 style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ marginBottom: '16px' }}>
+          <h2 style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             👥 Status Collaboratori
           </h2>
-          <p style={{ fontSize: '14px', color: '#64748b', fontStyle: 'italic' }}>
+          <p style={{ fontSize: '13px', color: '#64748b', fontStyle: 'italic', margin: 0 }}>
             💡 Clicca su un collaboratore per vedere tutte le sue attività
           </p>
         </div>
@@ -194,9 +178,9 @@ export default function Dashboard() {
           <p style={{ color: '#64748b' }}>Nessun collaboratore presente</p>
         ) : (
           <div style={{ 
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-            gap: '16px'
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '10px'
           }}>
             {collaboratori.map(collab => {
               const status = statusCollaboratori[collab.id] || 'red';
@@ -208,13 +192,17 @@ export default function Dashboard() {
                   key={collab.id}
                   onClick={() => filtraPerCollaboratore(collab.id)}
                   style={{
-                    padding: '16px',
-                    border: isSelezionato ? '3px solid #2563eb' : '2px solid #e5e7eb',
-                    borderRadius: '12px',
+                    padding: '10px 14px',
+                    border: isSelezionato ? '2px solid #2563eb' : '2px solid #e5e7eb',
+                    borderRadius: '8px',
                     background: isSelezionato ? '#eff6ff' : 'white',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
-                    boxShadow: isSelezionato ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none'
+                    boxShadow: isSelezionato ? '0 2px 8px rgba(37, 99, 235, 0.2)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    minWidth: '160px'
                   }}
                   onMouseEnter={(e) => {
                     if (!isSelezionato) {
@@ -229,36 +217,29 @@ export default function Dashboard() {
                     }
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                    <span 
-                      className={`status-indicator status-${status}`}
-                      style={{ width: '16px', height: '16px' }}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ 
-                        fontWeight: '600', 
-                        color: collab.colore,
-                        fontSize: '16px',
-                        marginBottom: '4px'
-                      }}>
-                        {collab.nome}
-                      </div>
-                      <div style={{ 
-                        fontSize: '13px', 
-                        color: '#64748b',
-                        lineHeight: '1.4'
-                      }}>
-                        {ultimaAtt ? (
-                          <>
-                            <div>{new Date(ultimaAtt.data_inserimento).toLocaleDateString('it-IT')}</div>
-                            <div style={{ fontSize: '12px', fontStyle: 'italic' }}>
-                              {formatDataRelativa(ultimaAtt.data_inserimento)}
-                            </div>
-                          </>
-                        ) : (
-                          <div>Nessuna attività</div>
-                        )}
-                      </div>
+                  <span 
+                    className={`status-indicator status-${status}`}
+                    style={{ width: '12px', height: '12px', flexShrink: 0 }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ 
+                      fontWeight: '600', 
+                      color: collab.colore,
+                      fontSize: '14px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {collab.nome}
+                    </div>
+                    <div style={{ 
+                      fontSize: '12px', 
+                      color: '#64748b'
+                    }}>
+                      {ultimaAtt 
+                        ? new Date(ultimaAtt.data_inserimento).toLocaleDateString('it-IT')
+                        : 'Nessuna att.'
+                      }
                     </div>
                   </div>
                 </div>
@@ -352,7 +333,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+        <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
           <button className="btn btn-primary" onClick={applicaFiltri}>
             🔍 Filtra Risultati
           </button>
@@ -361,6 +342,13 @@ export default function Dashboard() {
               ↺ Reset Filtri
             </button>
           )}
+          {/* PULSANTI PDF MINIMALISTI */}
+          <button className="btn btn-primary" onClick={esportaPDFTabellare}>
+            📊 PDF Tabellare
+          </button>
+          <button className="btn btn-success" onClick={esportaPDFEditoriale}>
+            📖 PDF Editoriale
+          </button>
         </div>
 
         {filtriApplicati && !collaboratoreSelezionato && (
@@ -372,27 +360,9 @@ export default function Dashboard() {
             color: '#1e40af'
           }}>
             ✓ Filtri applicati - {attivitaFiltrate.length} attività trovate
+            {filtroProgetto && ' | ' + (filtriApplicati ? 'L\'export PDF rispetterà i filtri' : '')}
           </div>
         )}
-      </div>
-
-      {/* EXPORT PDF */}
-      <div className="card" style={{ background: '#fef3c7', border: '2px solid #f59e0b' }}>
-        <h2 style={{ marginBottom: '16px' }}>📄 Esporta in PDF</h2>
-        <p style={{ marginBottom: '16px', color: '#92400e' }}>
-          {filtriApplicati 
-            ? 'L\'export rispetterà i filtri applicati sopra' 
-            : 'Verranno esportate tutte le attività (nessun filtro attivo)'}
-        </p>
-        
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button className="btn btn-primary" onClick={esportaPDFTabellare}>
-            📊 Esporta PDF Tabellare
-          </button>
-          <button className="btn btn-success" onClick={esportaPDFEditoriale}>
-            📖 Esporta PDF Editoriale
-          </button>
-        </div>
       </div>
 
       {/* PROGETTI */}
@@ -415,7 +385,6 @@ export default function Dashboard() {
           
           return (
             <div key={progetto.id} style={{ marginBottom: '24px' }}>
-              {/* HEADER PROGETTO CON GRADIENT */}
               <div style={{
                 background: coloreProgetto,
                 padding: '20px',
@@ -451,7 +420,8 @@ export default function Dashboard() {
                   display: 'flex',
                   gap: '24px',
                   fontSize: '14px',
-                  opacity: 0.95
+                  opacity: 0.95,
+                  flexWrap: 'wrap'
                 }}>
                   {collaboratoriProgetto.length > 0 && (
                     <div>
@@ -477,7 +447,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* CORPO PROGETTO */}
               <div style={{
                 background: 'white',
                 border: '2px solid #e5e7eb',
