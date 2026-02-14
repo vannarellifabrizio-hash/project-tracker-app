@@ -143,9 +143,22 @@ export default function Dashboard() {
     return new Date(progetto.data_fine) < new Date();
   };
 
-  const progettiFiltrati = filtroProgetto 
-    ? progetti.filter(p => p.id === filtroProgetto)
-    : progetti;
+  // Filtra progetti in base ai filtri attivi
+  const progettiFiltrati = (() => {
+    // Se filtro per progetto specifico, mostra solo quello
+    if (filtroProgetto) {
+      return progetti.filter(p => p.id === filtroProgetto);
+    }
+    
+    // Se filtro per collaboratore (click su card), mostra solo progetti con sue attività
+    if (collaboratoreSelezionato && attivitaFiltrate.length > 0) {
+      const progettiConAttivita = [...new Set(attivitaFiltrate.map(a => a.progetto_id))];
+      return progetti.filter(p => progettiConAttivita.includes(p.id));
+    }
+    
+    // Altrimenti mostra tutti
+    return progetti;
+  })();
 
   return (
     <div className="container">
